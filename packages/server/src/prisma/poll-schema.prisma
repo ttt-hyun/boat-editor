@@ -1,0 +1,40 @@
+// boat-editor Poll Schema Fragment
+// 소비자의 schema.prisma에 복사하여 사용하세요.
+
+model BoatPoll {
+  id              String           @id @default(uuid())
+  title           String
+  allowMultiple   Boolean          @default(false)
+  isAnonymous     Boolean          @default(false)
+  resultVisibility String          @default("AFTER_VOTE")
+  endDate         DateTime?
+  maxParticipants Int?
+  createdById     String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  options         BoatPollOption[]
+  votes           BoatPollVote[]
+  @@map("boat_polls")
+}
+
+model BoatPollOption {
+  id        String          @id @default(uuid())
+  pollId    String
+  poll      BoatPoll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  text      String
+  order     Int             @default(0)
+  votes     BoatPollVote[]
+  @@map("boat_poll_options")
+}
+
+model BoatPollVote {
+  id        String          @id @default(uuid())
+  pollId    String
+  poll      BoatPoll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  optionId  String
+  option    BoatPollOption   @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  voterId   String
+  createdAt DateTime        @default(now())
+  @@unique([pollId, optionId, voterId])
+  @@map("boat_poll_votes")
+}
