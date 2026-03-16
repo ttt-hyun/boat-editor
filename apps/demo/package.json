@@ -9,14 +9,18 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "boat-editor": "*",
-    "boat-editor-server": "*",
+    "@aws-sdk/client-s3": "^3.1009.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "boat-editor": "*",
+    "boat-editor-server": "*",
     "next": "16.1.6",
     "pg": "^8.20.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
+  },
+  "optionalDependencies": {
+    "@next/swc-win32-x64-msvc": "16.1.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

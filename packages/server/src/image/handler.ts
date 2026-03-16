@@ -3,15 +3,10 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join, extname } from 'path'
 
 export interface ImageUploadConfig {
-  storage: 'local' | 's3' | 'custom'
+  storage: 'local' | 'custom'
   // Local storage
   uploadDir?: string
   publicPath?: string
-  // S3 storage
-  s3Bucket?: string
-  s3Region?: string
-  s3AccessKeyId?: string
-  s3SecretAccessKey?: string
   // Custom storage
   customUploader?: (file: Buffer, filename: string, mimeType: string) => Promise<string>
   // Common
@@ -63,46 +58,6 @@ async function uploadLocal(
   return `${publicPath}/${filename}`
 }
 
-async function uploadS3(
-  buffer: Buffer,
-  filename: string,
-  mimeType: string,
-  config: ImageUploadConfig,
-): Promise<string> {
-  // Dynamic import to avoid requiring AWS SDK as a hard dependency
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const mod = await (Function('return import("@aws-sdk/client-s3")')() as Promise<{
-    S3Client: new (config: Record<string, unknown>) => { send: (cmd: unknown) => Promise<unknown> }
-    PutObjectCommand: new (input: Record<string, unknown>) => unknown
-  }>)
-  const { S3Client, PutObjectCommand } = mod
-
-  const client = new S3Client({
-    region: config.s3Region || 'us-east-1',
-    credentials:
-      config.s3AccessKeyId && config.s3SecretAccessKey
-        ? {
-            accessKeyId: config.s3AccessKeyId,
-            secretAccessKey: config.s3SecretAccessKey,
-          }
-        : undefined,
-  })
-
-  const bucket = config.s3Bucket!
-  const key = `images/${filename}`
-
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: buffer,
-      ContentType: mimeType,
-    }),
-  )
-
-  return `https://${bucket}.s3.${config.s3Region || 'us-east-1'}.amazonaws.com/${key}`
-}
-
 export type ImageUploadHandler = (req: Request) => Promise<Response>
 
 export function createImageUploadHandler(
@@ -144,15 +99,6 @@ export function createImageUploadHandler(
       switch (config.storage) {
         case 'local':
           url = await uploadLocal(buffer, filename, config)
-          break
-        case 's3':
-          if (!config.s3Bucket) {
-            return new Response(
-              JSON.stringify({ error: 'S3 bucket이 설정되지 않았습니다.' }),
-              { status: 500, headers: { 'Content-Type': 'application/json' } },
-            )
-          }
-          url = await uploadS3(buffer, filename, mimeType, config)
           break
         case 'custom':
           if (!config.customUploader) {
